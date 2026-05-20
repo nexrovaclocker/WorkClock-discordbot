@@ -115,3 +115,30 @@ async def get_weekly_leaderboard(pool, guild_id: str, tz_name: str):
     """
     async with pool.acquire() as conn:
         return await conn.fetch(query, guild_id, start_date)
+
+async def get_last_completed_session(pool, user_id: str, guild_id: str):
+    """
+    Retrieves the most recent completed work session for a user.
+    """
+    query = """
+        SELECT id, clock_in_time, clock_out_time, duration_minutes, date
+        FROM work_sessions
+        WHERE user_id = $1 AND guild_id = $2 AND clock_out_time IS NOT NULL
+        ORDER BY clock_out_time DESC
+        LIMIT 1;
+    """
+    async with pool.acquire() as conn:
+        return await conn.fetchrow(query, user_id, guild_id)
+
+async def update_session_times(pool, session_id: int, new_in: datetime, new_out: datetime, duration_minutes: float):
+    """
+    Updates the timings and duration of a specific session.
+    """
+    query = """
+        UPDATE work_sessions
+        SET clock_in_time = $1, clock_out_time = $2, duration_minutes = $3
+        WHERE id = $4
+        RETURNING *;
+    """
+    async with pool.acquire() as conn:
+        return await conn.fetchrow(query, new_in, new_out, duration_minutes, session_id)

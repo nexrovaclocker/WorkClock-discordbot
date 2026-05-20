@@ -8,7 +8,8 @@ It is designed for small-to-medium teams, startups, or intern programs looking f
 
 ## ✨ Core Features
 
-* **⏱️ Clock In / Out**: `/clockin` to start work, `/clockout` to end it. Calculates total elapsed minutes automatically.
+* **⏱️ Clock In / Out**: `/clockin` to start work, `/clockout` to end it. Supports an optional `work_done` parameter on clock-out. Calculates total elapsed minutes automatically.
+* **✏️ Edit Session**: `/editlast` allows you to edit the clock-in or clock-out times of your last completed session.
 * **🟢 Session Status**: `/status` shows whether you are currently clocked in, when you started, and your active elapsed time.
 * **📊 Personal Summaries**:
   * `/mysummary`: Lists today's active and completed sessions and total hours worked.
@@ -71,7 +72,6 @@ CREATE INDEX idx_work_sessions_guild_date ON work_sessions(guild_id, date);
 5. Open `.env` and fill in your credentials:
    ```env
    DISCORD_TOKEN=your_discord_bot_token
-   MANAGER_ROLE_ID=your_role_id
    SUPABASE_DB_URL=postgresql://user:password@hostname:5432/dbname
    TIMEZONE=Asia/Kolkata
    ```
@@ -97,7 +97,6 @@ WorkClock comes equipped with a keep-awake web server inside `bot.py` designed t
 3. Add the following **Environment Variables** on Render:
    * `DISCORD_TOKEN`
    * `SUPABASE_DB_URL`
-   * `MANAGER_ROLE_ID`
    * `TIMEZONE` (e.g. `Asia/Kolkata`)
    * `PORT`: `8080` (Render binds to this dynamically)
 4. Go to a free ping service like **[UptimeRobot](https://uptimerobot.com/)** or **[Cron-Job.org](https://cron-job.org/)** and configure it to send an HTTP GET request to your Render app URL (`https://your-app-name.onrender.com/`) every 5 to 10 minutes. This will hit the embedded pinger in your bot, ensuring it never goes to sleep!
