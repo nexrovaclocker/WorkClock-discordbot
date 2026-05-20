@@ -23,12 +23,7 @@ from datetime import datetime
 PING_INTERVAL_SECONDS = 120  # 2 minutes
 
 def get_service_url() -> str:
-    url = os.getenv("RENDER_SERVICE_URL", "").strip().rstrip("/")
-    if not url:
-        raise ValueError(
-            "RENDER_SERVICE_URL is not set. "
-            "Set it to your Render service URL, e.g. https://workclock-discordbot.onrender.com"
-        )
+    url = "https://workclock-discordbot.onrender.com/"
     return url
 
 def ping(url: str) -> bool:
