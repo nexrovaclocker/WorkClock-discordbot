@@ -32,7 +32,8 @@ class WorkClockBot(commands.Bot):
                 dsn=config.SUPABASE_DB_URL,
                 min_size=1,
                 max_size=10,
-                ssl='require'
+                ssl='require',
+                statement_cache_size=0
             )
             print("Database pool established successfully.")
         except Exception as e:
