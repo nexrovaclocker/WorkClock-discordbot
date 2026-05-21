@@ -61,8 +61,8 @@ class ClockCog(commands.Cog):
             self.bot.dispatch("app_command_error", interaction, e)
 
     @app_commands.command(name="clockout", description="End the active session")
-    @app_commands.describe(work_done="Optionally specify what work you accomplished during this session")
-    async def clockout(self, interaction: discord.Interaction, work_done: str = None):
+    @app_commands.describe(work_done="Describe what work you accomplished during this session (required)")
+    async def clockout(self, interaction: discord.Interaction, work_done: str):
         await interaction.response.defer(ephemeral=False)
         
         user_id = str(interaction.user.id)
@@ -99,8 +99,7 @@ class ClockCog(commands.Cog):
                 f"**Clocked Out:** {clock_out_str}\n"
                 f"**Total Duration:** {duration_str}"
             )
-            if work_done:
-                embed.add_field(name="Work Done Summary", value=work_done, inline=False)
+            embed.add_field(name="Work Done Summary", value=work_done, inline=False)
                 
             await interaction.followup.send(embed=embed)
             
@@ -244,39 +243,27 @@ class ClockCog(commands.Cog):
         user_id = str(interaction.user.id)
         guild_id = str(interaction.guild_id) if interaction.guild_id else "DM"
         
-        try:
-            open_sess = await database.get_open_session(self.bot.db_pool, user_id, guild_id)
-            if not open_sess:
-                embed = info_embed(
-                    "WorkClock Status",
-                    f"**State:** `🔴 Clocked Out`\n\nUse `/clockin` to start a new work session."
-                )
-                await interaction.followup.send(embed=embed)
-                return
-            
-            clock_in = open_sess["clock_in_time"]
-            if clock_in.tzinfo is None:
-                clock_in = clock_in.replace(tzinfo=pytz.utc)
-            
-            now_utc = datetime.now(pytz.utc)
-            duration = now_utc - clock_in
-            total_minutes = duration.total_seconds() / 60.0
-            
-            hours = int(total_minutes // 60)
-            mins = int(total_minutes % 60)
-            duration_str = f"**{hours}h {mins}m**" if hours > 0 else f"**{mins}m**"
-            
-            clock_in_str = format_local_time(clock_in, config.TIMEZONE)
-            
-            embed = info_embed("WorkClock Status")
-            embed.description = "**State:** `🟢 Active Session`"
-            embed.add_field(name="Clocked In At", value=f"{clock_in_str} (IST)", inline=True)
-            embed.add_field(name="Current Duration", value=duration_str, inline=True)
-            
+        # Get all open sessions for the guild
+        open_sessions = await database.get_all_open_sessions(self.bot.db_pool, guild_id)
+        if not open_sessions:
+            embed = info_embed(
+                "WorkClock Status",
+                "No members are currently clocked in."
+            )
             await interaction.followup.send(embed=embed)
-            
-        except Exception as e:
-            self.bot.dispatch("app_command_error", interaction, e)
+            return
+        
+        # Build a list of active users with their clock-in times
+        lines = []
+        for sess in open_sessions:
+            user_name = sess["username"]
+            clock_in_time = format_local_time(sess["clock_in_time"], config.TIMEZONE)
+            lines.append(f"• **{user_name}** – Clocked in at **{clock_in_time}** (IST)")
+        
+        embed = info_embed("WorkClock Status", "Active clock‑in sessions:")
+        embed.description = "\n".join(lines)
+        await interaction.followup.send(embed=embed)
+        return
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ClockCog(bot))

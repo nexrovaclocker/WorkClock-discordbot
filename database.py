@@ -142,3 +142,16 @@ async def update_session_times(pool, session_id: int, new_in: datetime, new_out:
     """
     async with pool.acquire() as conn:
         return await conn.fetchrow(query, new_in, new_out, duration_minutes, session_id)
+
+async def get_all_open_sessions(pool, guild_id: str):
+    """
+    Retrieves all active (clocked-in) sessions for a given guild.
+    """
+    query = """
+        SELECT user_id, username, clock_in_time, date
+        FROM work_sessions
+        WHERE guild_id = $1 AND clock_out_time IS NULL
+    """
+    async with pool.acquire() as conn:
+        return await conn.fetch(query, guild_id)
+
