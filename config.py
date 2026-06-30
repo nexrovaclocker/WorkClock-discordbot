@@ -26,6 +26,7 @@ class Config:
     AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
     
     PORT = int(os.environ.get("PORT", 8080))
+    RENDER_EXTERNAL_URL = os.environ.get("RENDER_EXTERNAL_URL")
 
 config = Config()
 supabase: Client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY) if config.SUPABASE_URL and config.SUPABASE_KEY else None

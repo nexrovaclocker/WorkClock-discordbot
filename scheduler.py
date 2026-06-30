@@ -2,6 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timezone
 import discord
+import aiohttp
 
 from config import supabase, config
 from utils import IST_OFFSET
@@ -48,6 +49,17 @@ async def run_weekly_snapshot(bot):
     print("Running weekly context snapshot...")
     await jarvis_ai.generate_weekly_snapshot()
 
+async def keep_awake():
+    url = config.RENDER_EXTERNAL_URL
+    if not url:
+        url = f"http://localhost:{config.PORT}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                print(f"[Keep-Awake] Pinged {url} | Status: {response.status}")
+    except Exception as e:
+        print(f"[Keep-Awake] Failed to ping {url}: {e}")
+
 def setup_scheduler(bot):
     scheduler = AsyncIOScheduler()
     
@@ -77,6 +89,13 @@ def setup_scheduler(bot):
         run_weekly_snapshot,
         CronTrigger(day_of_week='sat', hour=18, minute=30, timezone=timezone.utc),
         args=[bot]
+    )
+    
+    # Keep-awake ping every 2 minutes
+    scheduler.add_job(
+        keep_awake,
+        'interval',
+        minutes=2
     )
     
     scheduler.start()
