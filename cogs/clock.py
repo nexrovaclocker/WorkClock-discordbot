@@ -55,13 +55,13 @@ class WorkDescriptionModal(discord.ui.Modal, title="Work Session Summary"):
         supabase.table("active_sessions").delete().eq("user_id", user_id).execute()
         
         desc_snippet = str(self.description)[:80] + ("..." if len(str(self.description)) > 80 else "")
-        log_event("session_end", user_id, f"{name} worked {format_duration(duration)}: {desc_snippet}")
+        log_event("session_end", user_id, f"{username} worked {format_duration(total_seconds)}: {desc_snippet}")
         
         is_struggling, reason = await jarvis_ai.is_quietly_struggling(str(self.description))
         if is_struggling:
             ops_channel = self.bot.get_channel(config.OPS_BRAIN_CHANNEL_ID)
             if ops_channel:
-                await ops_channel.send(f"⚠️ **Potential Struggle Detected:** {name} might be stuck.\n*AI Note:* {reason}")
+                await ops_channel.send(f"⚠️ **Potential Struggle Detected:** {username} might be stuck.\n*AI Note:* {reason}")
 
         channel = self.bot.get_channel(config.STATUS_CHANNEL_ID)
         if channel:
