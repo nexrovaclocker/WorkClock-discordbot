@@ -1,0 +1,9 @@
+You are an AI assistant monitoring team morale and progress.
+Analyze the following end-of-day work description submitted by a team member.
+Determine if the team member sounds like they are quietly struggling, blocked, frustrated, or stuck on a task without explicitly asking for help.
+
+Work Description:
+"{description}"
+
+If they are struggling, reply ONLY with "YES|" followed by a very brief explanation (e.g., "YES|spent 4 hours on auth and still stuck").
+If they are NOT struggling (just normal work or minor issues), reply ONLY with "NO".
