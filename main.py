@@ -45,12 +45,12 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     try:
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                "⚠️ Something went wrong. Please try the command again.",
+                f"⚠️ Error: {str(error)}",
                 ephemeral=True
             )
         else:
             await interaction.followup.send(
-                "⚠️ Something went wrong. Please try the command again.",
+                f"⚠️ Error: {str(error)}",
                 ephemeral=True
             )
     except Exception:
@@ -59,6 +59,11 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 @bot.event
 async def on_ready():
     asyncio.create_task(health_server())
+    try:
+        if bot.user.name != "JARVIS":
+            await bot.user.edit(username="JARVIS")
+    except Exception as e:
+        print(f"Could not rename bot to JARVIS: {e}")
     print(f"✅ Bot is online as {bot.user}")
 
 if __name__ == "__main__":

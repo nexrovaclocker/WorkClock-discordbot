@@ -21,12 +21,13 @@ class WorkDescriptionModal(discord.ui.Modal, title="Work Session Summary"):
         self.bot = bot
 
     async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         user_id = str(interaction.user.id)
         username = interaction.user.display_name
 
         active = supabase.table("active_sessions").select("*").eq("user_id", user_id).execute()
         if not active.data:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "⚠️ Could not find your active session. Please try again.",
                 ephemeral=True
             )
@@ -80,7 +81,7 @@ class WorkDescriptionModal(discord.ui.Modal, title="Work Session Summary"):
             embed.add_field(name="📝 Work Summary", value=str(self.description), inline=False)
             await channel.send(embed=embed)
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"✅ Clocked out! You worked for **{readable}**. Great work!",
             ephemeral=True
         )
