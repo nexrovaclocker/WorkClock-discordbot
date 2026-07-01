@@ -6,14 +6,10 @@ class ConfigManager:
 
     def get_settings(self):
         """Fetch settings from Supabase, or return defaults if missing."""
-        if self._cache:
-            return self._cache
-            
         try:
             res = supabase.table("bot_settings").select("*").eq("id", 1).execute()
             if res.data:
-                self._cache = res.data[0]
-                return self._cache
+                return res.data[0]
         except Exception as e:
             print(f"Error fetching bot_settings: {e}")
             
@@ -30,16 +26,14 @@ class ConfigManager:
         except Exception:
             pass
             
-        self._cache = default_settings
         return default_settings
 
     def update_settings(self, updates: dict):
-        """Update settings in Supabase and refresh cache."""
+        """Update settings in Supabase."""
         try:
             updates["id"] = 1
             res = supabase.table("bot_settings").upsert(updates).execute()
             if res.data:
-                self._cache = res.data[0]
                 return True
         except Exception as e:
             print(f"Error updating bot_settings: {e}")
