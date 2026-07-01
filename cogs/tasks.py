@@ -16,10 +16,13 @@ def is_valid_uuid(val):
 
 class TaskCreateModal(discord.ui.Modal, title="Create Task"):
     title_input = discord.ui.TextInput(label="Task Title", max_length=150)
-    module_id_input = discord.ui.TextInput(label="Module ID", placeholder="Copy from /module-list")
     description = discord.ui.TextInput(label="Description", style=discord.TextStyle.paragraph, required=False)
     estimate = discord.ui.TextInput(label="Estimated Hours", placeholder="e.g. 2.5", required=False)
     due_date = discord.ui.TextInput(label="Due Date (YYYY-MM-DD)", placeholder="e.g. 2025-06-01", required=False)
+
+    def __init__(self, module_id: str = None):
+        super().__init__()
+        self.module_id = module_id
 
     async def on_submit(self, interaction: discord.Interaction):
         dt_utc = None
@@ -41,7 +44,7 @@ class TaskCreateModal(discord.ui.Modal, title="Create Task"):
 
         data = {
             "title": str(self.title_input),
-            "module_id": str(self.module_id_input).strip() or None,
+            "module_id": self.module_id,
             "description": str(self.description) if self.description.value else None,
             "estimated_hours": est_hours,
             "due_date": dt_utc.isoformat() if dt_utc else None,
@@ -113,9 +116,20 @@ class Tasks(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    async def module_autocomplete(self, interaction: discord.Interaction, current: str):
+        res = supabase.table("modules").select("id, name").eq("status", "active").execute()
+        modules = res.data or []
+        choices = []
+        for mod in modules:
+            if current.lower() in mod["name"].lower():
+                choices.append(app_commands.Choice(name=mod["name"], value=mod["id"]))
+        return choices[:25]
+
     @app_commands.command(name="task-create", description="Create a new task")
-    async def task_create(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(TaskCreateModal())
+    @app_commands.describe(module="Select the module for this task (Optional)")
+    @app_commands.autocomplete(module=module_autocomplete)
+    async def task_create(self, interaction: discord.Interaction, module: str = None):
+        await interaction.response.send_modal(TaskCreateModal(module_id=module))
 
     @app_commands.command(name="task-assign", description="Founder only: Assign a task to someone")
     @require_founder()

@@ -259,7 +259,6 @@ class Reporting(commands.Cog):
                 f"{label_h}h {label_m}m",
                 ha="center", va="bottom", fontsize=9, color="white", fontweight="bold"
             )
-        fig.tight_layout()
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor=bg_color)
         buf.seek(0)
