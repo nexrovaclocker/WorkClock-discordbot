@@ -27,7 +27,9 @@ class WorkTrackerBot(commands.Bot):
             "cogs.blockers",
             "cogs.demo",
             "cogs.intelligence",
-            "cogs.help"
+            "cogs.help",
+            "cogs.config_dashboard",
+            "cogs.dm_listener"
         ]
         for cog in cogs:
             await self.load_extension(cog)

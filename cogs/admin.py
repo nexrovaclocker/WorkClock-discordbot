@@ -185,5 +185,62 @@ class Admin(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"❌ Error fetching status: {e}")
 
+    @app_commands.command(name="force-clockout-all", description="Admin only: Force clock out everyone currently working")
+    async def force_clockout_all(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        if not is_admin(str(interaction.user.id)):
+            await interaction.followup.send("❌ You do not have permission.", ephemeral=True)
+            return
+
+        active_res = supabase.table("active_sessions").select("*").execute()
+        sessions = active_res.data
+        if not sessions:
+            await interaction.followup.send("No one is currently clocked in.", ephemeral=True)
+            return
+
+        now_utc = datetime.now(timezone.utc)
+        completed_rows = []
+        clocked_out_names = []
+        
+        from utils import get_month_key, log_event, format_duration
+
+        for session in sessions:
+            user_id = session["user_id"]
+            username = session["username"]
+            clock_in_utc = datetime.fromisoformat(session["clock_in"])
+            if clock_in_utc.tzinfo is None:
+                clock_in_utc = clock_in_utc.replace(tzinfo=timezone.utc)
+            total_seconds = int((now_utc - clock_in_utc).total_seconds())
+            
+            completed_rows.append({
+                "user_id": user_id,
+                "username": username,
+                "clock_in": session["clock_in"],
+                "clock_out": now_utc.isoformat(),
+                "duration_seconds": total_seconds,
+                "description": "Force clocked out by Admin",
+                "month_key": get_month_key(clock_in_utc)
+            })
+            clocked_out_names.append(username)
+            log_event("session_end", user_id, f"Force clocked out. Duration: {format_duration(total_seconds)}")
+
+        if completed_rows:
+            supabase.table("completed_sessions").insert(completed_rows).execute()
+            for s in sessions:
+                supabase.table("active_sessions").delete().eq("user_id", s["user_id"]).execute()
+
+        channel = self.bot.get_channel(config.STATUS_CHANNEL_ID)
+        if channel:
+            embed = discord.Embed(
+                title="🔴 Mass Clock Out",
+                description=f"An admin has force clocked out **{len(sessions)}** user(s).",
+                color=0xFF1744,
+                timestamp=now_utc
+            )
+            embed.add_field(name="Affected Users", value=", ".join(clocked_out_names), inline=False)
+            await channel.send(embed=embed)
+
+        await interaction.followup.send(f"✅ Force clocked out {len(sessions)} user(s): {', '.join(clocked_out_names)}.", ephemeral=True)
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(Admin(bot))

@@ -7,6 +7,7 @@ import aiohttp
 from config import supabase, config
 from utils import IST_OFFSET
 from ai_engine import jarvis_ai
+from config_manager import bot_config
 
 async def check_standups(bot):
     now_ist = datetime.now(timezone.utc) + IST_OFFSET
@@ -60,6 +61,27 @@ async def keep_awake():
     except Exception as e:
         print(f"[Keep-Awake] Failed to ping {url}: {e}")
 
+async def check_nightly_dm(bot):
+    settings = bot_config.get_settings()
+    dm_time = settings.get("daily_dm_time", "22:00")
+    
+    now_ist = datetime.now(timezone.utc) + IST_OFFSET
+    current_time_str = now_ist.strftime("%H:%M")
+    
+    if current_time_str == dm_time:
+        print(f"Triggering Nightly DM at {current_time_str} IST")
+        members_res = supabase.table("team_members").select("discord_user_id, display_name").eq("is_active", True).execute()
+        if not members_res.data:
+            return
+            
+        for member in members_res.data:
+            try:
+                user = await bot.fetch_user(int(member["discord_user_id"]))
+                if user:
+                    await user.send("🌙 **Hey there! It's time for the nightly check-in.**\nWhat did you get done today? Any blockers?")
+            except Exception as e:
+                print(f"Failed to DM {member['display_name']} for nightly sync: {e}")
+
 def setup_scheduler(bot):
     scheduler = AsyncIOScheduler()
     
@@ -96,6 +118,12 @@ def setup_scheduler(bot):
         keep_awake,
         'interval',
         minutes=2
+    )
+    
+    scheduler.add_job(
+        check_nightly_dm,
+        CronTrigger(second='0'),
+        args=[bot]
     )
     
     scheduler.start()

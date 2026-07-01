@@ -3,6 +3,7 @@ from discord import app_commands
 import json
 from datetime import datetime, timezone, timedelta
 from config import config, supabase
+from config_manager import bot_config
 
 IST_OFFSET = timedelta(hours=5, minutes=30)
 
@@ -27,10 +28,10 @@ def get_month_key(dt=None):
     return dt.strftime("%Y-%m")
 
 def is_founder(user_id: str) -> bool:
-    return str(user_id) in config.FOUNDER_IDS
+    return bot_config.is_founder(user_id)
 
 def is_admin(user_id: str) -> bool:
-    return str(user_id) in config.ADMIN_IDS
+    return bot_config.is_admin(user_id)
 
 def require_founder():
     """Decorator-style check for slash commands."""

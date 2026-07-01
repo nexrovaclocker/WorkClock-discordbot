@@ -3,9 +3,8 @@ from discord.ext import commands
 from discord import app_commands
 import io
 from datetime import datetime, timezone
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 from config import supabase
 from utils import to_ist, format_duration
@@ -233,9 +232,11 @@ class Reporting(commands.Cog):
                        "#00E5FF", "#00B0FF", "#0091EA", "#304FFE", "#651FFF"]
         bar_colors = [bar_palette[i % len(bar_palette)] for i in range(len(names))]
         fig_width = max(7, len(names) * 1.4)
-        fig, ax = plt.subplots(figsize=(fig_width, 5))
+        fig = Figure(figsize=(fig_width, 5))
+        canvas = FigureCanvas(fig)
         bg_color = "#2b2d31"
         fig.patch.set_facecolor(bg_color)
+        ax = fig.add_subplot(111)
         ax.set_facecolor("#1e1f22")
         bars = ax.bar(names, hours, color=bar_colors, width=0.55, zorder=2)
         ax.set_title("Total Hours Worked — All Members", fontsize=13,
@@ -258,11 +259,10 @@ class Reporting(commands.Cog):
                 f"{label_h}h {label_m}m",
                 ha="center", va="bottom", fontsize=9, color="white", fontweight="bold"
             )
-        plt.tight_layout()
+        fig.tight_layout()
         buf = io.BytesIO()
-        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor=bg_color)
+        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor=bg_color)
         buf.seek(0)
-        plt.close(fig)
         chart_file = discord.File(buf, filename="server_report.png")
         embed.set_image(url="attachment://server_report.png")
         await interaction.followup.send(embed=embed, file=chart_file)

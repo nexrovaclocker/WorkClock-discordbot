@@ -5,6 +5,14 @@ from datetime import datetime, timezone
 
 from config import supabase
 from utils import require_founder, to_ist, IST_OFFSET, format_duration, log_event
+import uuid
+
+def is_valid_uuid(val):
+    try:
+        uuid.UUID(str(val))
+        return True
+    except ValueError:
+        return False
 
 class TaskCreateModal(discord.ui.Modal, title="Create Task"):
     title_input = discord.ui.TextInput(label="Task Title", max_length=150)
@@ -113,6 +121,9 @@ class Tasks(commands.Cog):
     @require_founder()
     async def task_assign(self, interaction: discord.Interaction, task_id: str, person: discord.Member):
         await interaction.response.defer()
+        if not is_valid_uuid(task_id):
+            await interaction.followup.send("❌ Invalid Task ID format.")
+            return
         res = supabase.table("tasks").update({"assignee_id": str(person.id)}).eq("id", task_id).execute()
         if not res.data:
             await interaction.followup.send("❌ Task not found.")
@@ -124,6 +135,9 @@ class Tasks(commands.Cog):
     @app_commands.command(name="task-start", description="Mark your assigned task as in progress")
     async def task_start(self, interaction: discord.Interaction, task_id: str):
         await interaction.response.defer()
+        if not is_valid_uuid(task_id):
+            await interaction.followup.send("❌ Invalid Task ID format.")
+            return
         res = supabase.table("tasks").select("*").eq("id", task_id).execute()
         if not res.data:
             await interaction.followup.send("❌ Task not found.")
@@ -144,6 +158,9 @@ class Tasks(commands.Cog):
 
     @app_commands.command(name="task-done", description="Mark a task complete")
     async def task_done(self, interaction: discord.Interaction, task_id: str):
+        if not is_valid_uuid(task_id):
+            await interaction.response.send_message("❌ Invalid Task ID format.", ephemeral=True)
+            return
         res = supabase.table("tasks").select("*").eq("id", task_id).execute()
         if not res.data:
             await interaction.response.send_message("❌ Task not found.", ephemeral=True)
@@ -179,6 +196,9 @@ class Tasks(commands.Cog):
 
     @app_commands.command(name="task-update", description="Add a progress note")
     async def task_update(self, interaction: discord.Interaction, task_id: str):
+        if not is_valid_uuid(task_id):
+            await interaction.response.send_message("❌ Invalid Task ID format.", ephemeral=True)
+            return
         await interaction.response.send_modal(TaskUpdateModal(task_id))
 
     @app_commands.command(name="my-tasks", description="View your active tasks")
@@ -214,6 +234,9 @@ class Tasks(commands.Cog):
     @app_commands.command(name="task-claim", description="Claim an unassigned task")
     async def task_claim(self, interaction: discord.Interaction, task_id: str):
         await interaction.response.defer()
+        if not is_valid_uuid(task_id):
+            await interaction.followup.send("❌ Invalid Task ID format.")
+            return
         res = supabase.table("tasks").select("*").eq("id", task_id).execute()
         if not res.data:
             await interaction.followup.send("❌ Task not found.")
@@ -241,6 +264,9 @@ class Tasks(commands.Cog):
     @app_commands.command(name="task-view", description="View full task details")
     async def task_view(self, interaction: discord.Interaction, task_id: str):
         await interaction.response.defer()
+        if not is_valid_uuid(task_id):
+            await interaction.followup.send("❌ Invalid Task ID format.")
+            return
         res = supabase.table("tasks").select("*").eq("id", task_id).execute()
         if not res.data:
             await interaction.followup.send("❌ Task not found.")
@@ -254,6 +280,9 @@ class Tasks(commands.Cog):
     @app_commands.command(name="task-block", description="Mark task as blocked")
     async def task_block(self, interaction: discord.Interaction, task_id: str):
         await interaction.response.defer()
+        if not is_valid_uuid(task_id):
+            await interaction.followup.send("❌ Invalid Task ID format.")
+            return
         res = supabase.table("tasks").update({"status": "blocked"}).eq("id", task_id).execute()
         if not res.data:
             await interaction.followup.send("❌ Task not found.")
