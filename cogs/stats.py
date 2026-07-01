@@ -5,6 +5,46 @@ import io
 from datetime import datetime, timezone
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import asyncio
+
+def _generate_server_chart(sorted_users):
+    names = [info["username"] for _, info in sorted_users]
+    hours = [info["seconds"] / 3600 for _, info in sorted_users]
+    bar_palette = ["#7C4DFF", "#536DFE", "#448AFF", "#40C4FF", "#18FFFF",
+                   "#00E5FF", "#00B0FF", "#0091EA", "#304FFE", "#651FFF"]
+    bar_colors = [bar_palette[i % len(bar_palette)] for i in range(len(names))]
+    fig_width = max(7, len(names) * 1.4)
+    fig = Figure(figsize=(fig_width, 5))
+    canvas = FigureCanvas(fig)
+    bg_color = "#2b2d31"
+    fig.patch.set_facecolor(bg_color)
+    ax = fig.add_subplot(111)
+    ax.set_facecolor("#1e1f22")
+    bars = ax.bar(names, hours, color=bar_colors, width=0.55, zorder=2)
+    ax.set_title("Total Hours Worked — All Members", fontsize=13,
+                 color="white", pad=14, fontweight="bold")
+    ax.set_ylabel("Hours", fontsize=11, color="#b5bac1")
+    ax.set_xlabel("Team Member", fontsize=11, color="#b5bac1")
+    ax.tick_params(axis="x", colors="white", labelsize=10)
+    ax.tick_params(axis="y", colors="#b5bac1", labelsize=10)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color("#3f4147")
+    ax.spines["bottom"].set_color("#3f4147")
+    ax.grid(axis="y", color="#3f4147", linestyle="--", linewidth=0.7, zorder=1)
+    for bar, h in zip(bars, hours):
+        label_h = int(h)
+        label_m = int((h - label_h) * 60)
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + max(hours) * 0.015,
+            f"{label_h}h {label_m}m",
+            ha="center", va="bottom", fontsize=9, color="white", fontweight="bold"
+        )
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor=bg_color)
+    buf.seek(0)
+    return buf
 
 from config import supabase
 from utils import to_ist, format_duration
@@ -226,45 +266,14 @@ class Reporting(commands.Cog):
             inline=False
         )
 
-        names = [info["username"] for _, info in sorted_users]
-        hours = [info["seconds"] / 3600 for _, info in sorted_users]
-        bar_palette = ["#7C4DFF", "#536DFE", "#448AFF", "#40C4FF", "#18FFFF",
-                       "#00E5FF", "#00B0FF", "#0091EA", "#304FFE", "#651FFF"]
-        bar_colors = [bar_palette[i % len(bar_palette)] for i in range(len(names))]
-        fig_width = max(7, len(names) * 1.4)
-        fig = Figure(figsize=(fig_width, 5))
-        canvas = FigureCanvas(fig)
-        bg_color = "#2b2d31"
-        fig.patch.set_facecolor(bg_color)
-        ax = fig.add_subplot(111)
-        ax.set_facecolor("#1e1f22")
-        bars = ax.bar(names, hours, color=bar_colors, width=0.55, zorder=2)
-        ax.set_title("Total Hours Worked — All Members", fontsize=13,
-                     color="white", pad=14, fontweight="bold")
-        ax.set_ylabel("Hours", fontsize=11, color="#b5bac1")
-        ax.set_xlabel("Team Member", fontsize=11, color="#b5bac1")
-        ax.tick_params(axis="x", colors="white", labelsize=10)
-        ax.tick_params(axis="y", colors="#b5bac1", labelsize=10)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.spines["left"].set_color("#3f4147")
-        ax.spines["bottom"].set_color("#3f4147")
-        ax.grid(axis="y", color="#3f4147", linestyle="--", linewidth=0.7, zorder=1)
-        for bar, h in zip(bars, hours):
-            label_h = int(h)
-            label_m = int((h - label_h) * 60)
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                bar.get_height() + max(hours) * 0.015,
-                f"{label_h}h {label_m}m",
-                ha="center", va="bottom", fontsize=9, color="white", fontweight="bold"
-            )
-        buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", facecolor=bg_color)
-        buf.seek(0)
-        chart_file = discord.File(buf, filename="server_report.png")
-        embed.set_image(url="attachment://server_report.png")
-        await interaction.followup.send(embed=embed, file=chart_file)
+        try:
+            buf = await asyncio.to_thread(_generate_server_chart, sorted_users)
+            chart_file = discord.File(buf, filename="server_report.png")
+            embed.set_image(url="attachment://server_report.png")
+            await interaction.followup.send(embed=embed, file=chart_file)
+        except Exception as e:
+            print(f"Chart generation error: {e}")
+            await interaction.followup.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
