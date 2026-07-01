@@ -21,8 +21,11 @@ class DMTimeModal(discord.ui.Modal, title="Configure Nightly DM Time"):
             
         settings = bot_config.get_settings()
         settings["daily_dm_time"] = time_str
-        bot_config.update_settings(settings)
-        await interaction.response.send_message(f"✅ Nightly DM time updated to {time_str} IST.", ephemeral=True)
+        success = bot_config.update_settings(settings)
+        if success:
+            await interaction.response.send_message(f"✅ Nightly DM time updated to {time_str} IST.", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Failed to save config. Did you create the `bot_settings` table in Supabase?", ephemeral=True)
 
 class AdminsModal(discord.ui.Modal, title="Configure Admins"):
     admin_input = discord.ui.TextInput(
@@ -38,8 +41,11 @@ class AdminsModal(discord.ui.Modal, title="Configure Admins"):
     async def on_submit(self, interaction: discord.Interaction):
         settings = bot_config.get_settings()
         settings["admin_ids"] = str(self.admin_input).strip()
-        bot_config.update_settings(settings)
-        await interaction.response.send_message("✅ Admins updated successfully.", ephemeral=True)
+        success = bot_config.update_settings(settings)
+        if success:
+            await interaction.response.send_message("✅ Admins updated successfully.", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Failed to save config. Did you create the `bot_settings` table in Supabase?", ephemeral=True)
 
 class ConfigSelect(discord.ui.Select):
     def __init__(self):

@@ -139,7 +139,8 @@ class Admin(commands.Cog):
             "discord_user_id": str(person.id),
             "username": person.name,
             "display_name": person.display_name,
-            "role": role
+            "role": role,
+            "is_active": True
         }, on_conflict="discord_user_id").execute()
         
         
